@@ -1,6 +1,6 @@
 "use client"
 
-import { Home, Search, Calendar, User } from "lucide-react"
+import { Home, Search, Calendar, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -9,7 +9,7 @@ const navItems = [
   { href: "/inicio", label: "Inicio", icon: Home },
   { href: "/descubrir", label: "Descubrir", icon: Search },
   { href: "/eventos", label: "Eventos", icon: Calendar },
-  { href: "/perfil", label: "Perfil", icon: User },
+  { href: "/actividad", label: "Actividad", icon: TrendingUp },
 ]
 
 export function BottomNav() {

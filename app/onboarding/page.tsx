@@ -1,19 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { AppHeader } from "@/components/app-header"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Sparkles, ArrowRight, ArrowLeft, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { Sparkles, ArrowRight, ArrowLeft } from "lucide-react"
 
 export default function OnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
-  const [isGenerating, setIsGenerating] = useState(false)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -22,6 +15,7 @@ export default function OnboardingPage() {
     mobility: "buena",
     schedule: "",
     preferences: "",
+    updateFrequency: "weekly",
   })
 
   const handleNext = () => {
@@ -38,212 +32,253 @@ export default function OnboardingPage() {
     }
   }
 
-  const handleFinish = async () => {
-    setIsGenerating(true)
+  const handleFinish = () => {
+    // Save profile to localStorage
+    localStorage.setItem(
+      "elderProfile",
+      JSON.stringify({
+        ...formData,
+        createdAt: new Date().toISOString(),
+      }),
+    )
 
-    try {
-      const response = await fetch("/api/generate-profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      })
-
-      const data = await response.json()
-
-      // Guardar el perfil en localStorage
-      localStorage.setItem(
-        "elderProfile",
-        JSON.stringify({
-          ...formData,
-          recommendations: data.recommendations,
-          createdAt: new Date().toISOString(),
-        }),
-      )
-
-      router.push("/inicio")
-    } catch (error) {
-      console.error("Error generating profile:", error)
-    } finally {
-      setIsGenerating(false)
-    }
+    // Redirect to home page
+    router.push("/inicio")
   }
 
   const canProceed = () => {
     if (step === 1) return formData.name && formData.age
     if (step === 2) return formData.interests
-    if (step === 3) return true
-    return false
+    return true
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <AppHeader elderName={formData.name || "Configuración"} />
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b bg-card">
+        <div className="flex h-16 items-center px-4">
+          <h1 className="text-xl font-semibold">Grand AI</h1>
+          <p className="ml-4 text-sm text-muted-foreground">Plan de {formData.name || "Configuración"}</p>
+        </div>
+      </header>
 
-      <main className="flex-1 pb-8">
-        <div className="container max-w-2xl px-4 py-8">
-          {/* Progress indicator */}
-          <div className="mb-8 flex items-center justify-center gap-2">
-            {[1, 2, 3].map((s) => (
-              <div
-                key={s}
-                className={`h-2 w-16 rounded-full transition-colors ${
-                  s === step ? "bg-primary" : s < step ? "bg-primary/50" : "bg-muted"
-                }`}
-              />
-            ))}
+      {/* Main content */}
+      <main className="p-4 pb-20 md:pb-8">
+        {/* Progress bars */}
+        <div className="mb-8 flex justify-center gap-2">
+          {[1, 2, 3].map((s) => (
+            <div
+              key={s}
+              className={`h-2 w-20 rounded-full ${s === step ? "bg-primary" : s < step ? "bg-primary/50" : "bg-muted"}`}
+            />
+          ))}
+        </div>
+
+        {/* Form card */}
+        <div className="mx-auto max-w-2xl rounded-lg border bg-card p-6 shadow-sm">
+          {/* Card header */}
+          <div className="mb-6 flex items-center gap-2">
+            <Sparkles className="h-6 w-6 text-primary" />
+            <h2 className="text-2xl font-semibold">
+              {step === 1 && "Información básica"}
+              {step === 2 && "Intereses y gustos"}
+              {step === 3 && "Preferencias y horarios"}
+            </h2>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-2xl">
-                <Sparkles className="h-6 w-6 text-primary" />
-                {step === 1 && "Información básica"}
-                {step === 2 && "Intereses y gustos"}
-                {step === 3 && "Preferencias y horarios"}
-              </CardTitle>
-            </CardHeader>
+          {/* Form content */}
+          <div className="space-y-6">
+            {/* Step 1 */}
+            {step === 1 && (
+              <>
+                <div>
+                  <label htmlFor="name" className="mb-2 block text-base font-medium">
+                    ¿Cómo se llama?
+                  </label>
+                  <input
+                    id="name"
+                    type="text"
+                    placeholder="Ej: Nélida"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full rounded-md border border-input bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
 
-            <CardContent className="space-y-6">
-              {step === 1 && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="name" className="text-base">
-                      ¿Cómo se llama?
-                    </Label>
-                    <Input
-                      id="name"
-                      placeholder="Ej: Nélida"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="text-base"
-                    />
-                  </div>
+                <div>
+                  <label htmlFor="age" className="mb-2 block text-base font-medium">
+                    ¿Qué edad tiene?
+                  </label>
+                  <input
+                    id="age"
+                    type="number"
+                    placeholder="Ej: 75"
+                    value={formData.age}
+                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                    className="w-full rounded-md border border-input bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="age" className="text-base">
-                      ¿Qué edad tiene?
-                    </Label>
-                    <Input
-                      id="age"
-                      type="number"
-                      placeholder="Ej: 75"
-                      value={formData.age}
-                      onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                      className="text-base"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="mobility" className="text-base">
-                      Movilidad
-                    </Label>
-                    <select
-                      id="mobility"
-                      value={formData.mobility}
-                      onChange={(e) => setFormData({ ...formData, mobility: e.target.value })}
-                      className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <option value="excelente">Excelente - Se mueve sin ayuda</option>
-                      <option value="buena">Buena - Necesita ayuda ocasional</option>
-                      <option value="limitada">Limitada - Usa bastón o andador</option>
-                      <option value="reducida">Reducida - Usa silla de ruedas</option>
-                    </select>
-                  </div>
-                </>
-              )}
-
-              {step === 2 && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="interests" className="text-base">
-                      ¿Qué le gusta hacer? ¿Cuáles son sus hobbies?
-                    </Label>
-                    <Textarea
-                      id="interests"
-                      placeholder="Ej: Le encanta tejer, escuchar tango, ver películas clásicas, cocinar recetas tradicionales..."
-                      value={formData.interests}
-                      onChange={(e) => setFormData({ ...formData, interests: e.target.value })}
-                      rows={5}
-                      className="text-base resize-none"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Contanos todo lo que le gusta. Esto ayuda a la IA a personalizar el contenido.
-                    </p>
-                  </div>
-                </>
-              )}
-
-              {step === 3 && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="schedule" className="text-base">
-                      ¿Cuál es su rutina diaria? (Opcional)
-                    </Label>
-                    <Textarea
-                      id="schedule"
-                      placeholder="Ej: Se levanta a las 8, desayuna a las 9, le gusta hacer actividades por la mañana, duerme siesta de 14 a 16..."
-                      value={formData.schedule}
-                      onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
-                      rows={4}
-                      className="text-base resize-none"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="preferences" className="text-base">
-                      Otras preferencias o información importante (Opcional)
-                    </Label>
-                    <Textarea
-                      id="preferences"
-                      placeholder="Ej: No le gusta la tecnología complicada, prefiere actividades tranquilas, le gusta estar con gente..."
-                      value={formData.preferences}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          preferences: e.target.value,
-                        })
-                      }
-                      rows={4}
-                      className="text-base resize-none"
-                    />
-                  </div>
-                </>
-              )}
-
-              <div className="flex gap-3 pt-4">
-                {step > 1 && (
-                  <Button
-                    variant="outline"
-                    onClick={handleBack}
-                    disabled={isGenerating}
-                    className="flex-1 bg-transparent"
+                <div>
+                  <label htmlFor="mobility" className="mb-2 block text-base font-medium">
+                    Movilidad
+                  </label>
+                  <select
+                    id="mobility"
+                    value={formData.mobility}
+                    onChange={(e) => setFormData({ ...formData, mobility: e.target.value })}
+                    className="w-full rounded-md border border-input bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Atrás
-                  </Button>
-                )}
+                    <option value="excelente">Excelente - Se mueve sin ayuda</option>
+                    <option value="buena">Buena - Necesita ayuda ocasional</option>
+                    <option value="limitada">Limitada - Usa bastón o andador</option>
+                    <option value="reducida">Reducida - Usa silla de ruedas</option>
+                  </select>
+                </div>
+              </>
+            )}
 
-                <Button onClick={handleNext} disabled={!canProceed() || isGenerating} className="flex-1">
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generando perfil...
-                    </>
-                  ) : step === 3 ? (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Generar plan con IA
-                    </>
-                  ) : (
-                    <>
-                      Siguiente
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </>
-                  )}
-                </Button>
+            {/* Step 2 */}
+            {step === 2 && (
+              <div>
+                <label htmlFor="interests" className="mb-2 block text-base font-medium">
+                  ¿Qué le gusta hacer? ¿Cuáles son sus hobbies?
+                </label>
+                <textarea
+                  id="interests"
+                  placeholder="Ej: Le encanta tejer, escuchar tango, ver películas clásicas, cocinar recetas tradicionales..."
+                  value={formData.interests}
+                  onChange={(e) => setFormData({ ...formData, interests: e.target.value })}
+                  rows={6}
+                  className="w-full resize-none rounded-md border border-input bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Contanos todo lo que le gusta. Esto ayuda a la IA a personalizar el contenido.
+                </p>
               </div>
-            </CardContent>
-          </Card>
+            )}
+
+            {/* Step 3 */}
+            {step === 3 && (
+              <>
+                <div>
+                  <label htmlFor="schedule" className="mb-2 block text-base font-medium">
+                    ¿Cuál es su rutina diaria? (Opcional)
+                  </label>
+                  <textarea
+                    id="schedule"
+                    placeholder="Ej: Se levanta a las 8, desayuna a las 9, le gusta hacer actividades por la mañana..."
+                    value={formData.schedule}
+                    onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
+                    rows={4}
+                    className="w-full resize-none rounded-md border border-input bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="preferences" className="mb-2 block text-base font-medium">
+                    Otras preferencias o información importante (Opcional)
+                  </label>
+                  <textarea
+                    id="preferences"
+                    placeholder="Ej: No le gusta la tecnología complicada, prefiere actividades tranquilas..."
+                    value={formData.preferences}
+                    onChange={(e) => setFormData({ ...formData, preferences: e.target.value })}
+                    rows={4}
+                    className="w-full resize-none rounded-md border border-input bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+
+                <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4">
+                  <label className="mb-2 block text-base font-semibold">
+                    ¿Cada cuánto querés actualizar el contenido?
+                  </label>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    La app generará nuevo contenido personalizado según esta frecuencia, basándose en lo que
+                    {formData.name ? ` ${formData.name}` : " la persona"} vio y le gustó.
+                  </p>
+
+                  <div className="space-y-2">
+                    <label className="flex cursor-pointer items-center gap-3 rounded-md border-2 border-input bg-background p-3 transition-colors hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                      <input
+                        type="radio"
+                        name="updateFrequency"
+                        value="weekly"
+                        checked={formData.updateFrequency === "weekly"}
+                        onChange={(e) => setFormData({ ...formData, updateFrequency: e.target.value })}
+                        className="h-4 w-4"
+                      />
+                      <div>
+                        <div className="font-medium">Cada semana</div>
+                        <div className="text-sm text-muted-foreground">Contenido fresco semanalmente</div>
+                      </div>
+                    </label>
+
+                    <label className="flex cursor-pointer items-center gap-3 rounded-md border-2 border-input bg-background p-3 transition-colors hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                      <input
+                        type="radio"
+                        name="updateFrequency"
+                        value="biweekly"
+                        checked={formData.updateFrequency === "biweekly"}
+                        onChange={(e) => setFormData({ ...formData, updateFrequency: e.target.value })}
+                        className="h-4 w-4"
+                      />
+                      <div>
+                        <div className="font-medium">Cada 2 semanas</div>
+                        <div className="text-sm text-muted-foreground">Actualización quincenal</div>
+                      </div>
+                    </label>
+
+                    <label className="flex cursor-pointer items-center gap-3 rounded-md border-2 border-input bg-background p-3 transition-colors hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                      <input
+                        type="radio"
+                        name="updateFrequency"
+                        value="monthly"
+                        checked={formData.updateFrequency === "monthly"}
+                        onChange={(e) => setFormData({ ...formData, updateFrequency: e.target.value })}
+                        className="h-4 w-4"
+                      />
+                      <div>
+                        <div className="font-medium">Cada mes</div>
+                        <div className="text-sm text-muted-foreground">Contenido nuevo mensualmente</div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Navigation buttons */}
+            <div className="flex gap-3 pt-4">
+              {step > 1 && (
+                <button
+                  onClick={handleBack}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-3 font-medium transition-colors hover:bg-accent"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Atrás
+                </button>
+              )}
+
+              <button
+                onClick={handleNext}
+                disabled={!canProceed()}
+                className="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+              >
+                {step === 3 ? (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Comenzar
+                  </>
+                ) : (
+                  <>
+                    Siguiente
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       </main>
     </div>
