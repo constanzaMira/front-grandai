@@ -1,10 +1,13 @@
 "use client"
 
+import { useAuth } from "@/hooks/use-auth"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Sparkles, ArrowRight, ArrowLeft } from "lucide-react"
 
 export default function OnboardingPage() {
+  const { isLoading: authLoading } = useAuth({ requireAuth: true })
+
   const router = useRouter()
   const [step, setStep] = useState(1)
 
@@ -50,6 +53,17 @@ export default function OnboardingPage() {
     if (step === 1) return formData.name && formData.age
     if (step === 2) return formData.interests
     return true
+  }
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <Sparkles className="mx-auto h-12 w-12 animate-pulse text-primary mb-4" />
+          <p className="text-lg text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -162,31 +176,13 @@ export default function OnboardingPage() {
             {step === 3 && (
               <>
                 <div>
-                  <label htmlFor="schedule" className="mb-2 block text-base font-medium">
-                    ¿Cuál es su rutina diaria? (Opcional)
-                  </label>
-                  <textarea
-                    id="schedule"
-                    placeholder="Ej: Se levanta a las 8, desayuna a las 9, le gusta hacer actividades por la mañana..."
-                    value={formData.schedule}
-                    onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
-                    rows={4}
-                    className="w-full resize-none rounded-md border border-input bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
+                  
+                  
                 </div>
 
                 <div>
-                  <label htmlFor="preferences" className="mb-2 block text-base font-medium">
-                    Otras preferencias o información importante (Opcional)
-                  </label>
-                  <textarea
-                    id="preferences"
-                    placeholder="Ej: No le gusta la tecnología complicada, prefiere actividades tranquilas..."
-                    value={formData.preferences}
-                    onChange={(e) => setFormData({ ...formData, preferences: e.target.value })}
-                    rows={4}
-                    className="w-full resize-none rounded-md border border-input bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
+                  
+                  
                 </div>
 
                 <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4">

@@ -1,5 +1,6 @@
 "use client"
 
+import { useAuth } from "@/hooks/use-auth"
 import { useEffect, useState } from "react"
 import { AppHeader } from "@/components/app-header"
 import { BottomNav } from "@/components/bottom-nav"
@@ -7,9 +8,12 @@ import { DesktopNav } from "@/components/desktop-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Sparkles, Youtube, Music, Calendar, Loader2, RefreshCw, X, Plus } from "lucide-react"
+import { Sparkles, Youtube, Music, Calendar, Loader2, RefreshCw, X, Plus, Edit, Save, Wand2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import { useToast } from "@/hooks/use-toast"
+import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
 
 interface ElderProfile {
   name: string
@@ -52,18 +56,26 @@ interface GeneratedContent {
 
 export default function InicioPage() {
   const router = useRouter()
+  const { toast } = useToast()
+  const { isLoggedIn, role, profileId, isLoading: authLoading } = useAuth({ requireAuth: true })
   const [profile, setProfile] = useState<ElderProfile | null>(null)
   const [content, setContent] = useState<GeneratedContent | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRegenerating, setIsRegenerating] = useState(false)
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [editedProfile, setEditedProfile] = useState<ElderProfile | null>(null)
+  const [isReformulating, setIsReformulating] = useState(false)
   const [activitySummary, setActivitySummary] = useState({
     liked: 0,
     disliked: 0,
     notViewed: 0,
     total: 0,
   })
+  const [visiblePlaceholders, setVisiblePlaceholders] = useState([1, 2, 3])
 
   useEffect(() => {
+    if (authLoading) return
+
     console.log("[v0] Inicio page mounted")
     const storedProfile = localStorage.getItem("elderProfile")
     console.log("[v0] Stored profile:", storedProfile)
@@ -91,7 +103,7 @@ export default function InicioPage() {
       console.log("[v0] No content found, generating...")
       generateContent(parsedProfile)
     }
-  }, [router])
+  }, [router, authLoading])
 
   const calculateActivitySummary = (contentData: GeneratedContent) => {
     const allContent = [...(contentData.videos || []), ...(contentData.podcasts || []), ...(contentData.events || [])]
@@ -238,12 +250,52 @@ export default function InicioPage() {
     calculateActivitySummary(updatedContent)
   }
 
+  const handleRemovePlaceholder = (id: number) => {
+    setVisiblePlaceholders((prev) => prev.filter((item) => item !== id))
+  }
+
+  const handleSaveProfile = () => {
+    if (!editedProfile) return
+
+    localStorage.setItem("elderProfile", JSON.stringify(editedProfile))
+    setProfile(editedProfile)
+    setIsEditingProfile(false)
+
+    toast({
+      title: "Perfil actualizado",
+      description: "Los cambios se han guardado correctamente",
+    })
+  }
+
+  const handleStartEdit = () => {
+    setEditedProfile(profile)
+    setIsEditingProfile(true)
+  }
+
+  const handleCancelEdit = () => {
+    setEditedProfile(null)
+    setIsEditingProfile(false)
+  }
+
+  const handleReformulate = async () => {
+    setIsReformulating(true)
+
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+
+    toast({
+      title: "Descripción reformulada",
+      description: "La descripción se ha actualizado basándose en el feedback del contenido reproducido",
+    })
+
+    setIsReformulating(false)
+  }
+
   console.log("[v0] Rendering inicio page, content:", content)
   console.log("[v0] Videos count:", content?.videos?.length)
   console.log("[v0] Podcasts count:", content?.podcasts?.length)
   console.log("[v0] Events count:", content?.events?.length)
 
-  if (isLoading) {
+  if (isLoading || authLoading) {
     return (
       <div className="flex min-h-screen flex-col">
         <AppHeader elderName={profile?.name || "Cargando..."} />
@@ -266,6 +318,125 @@ export default function InicioPage() {
 
         <main className="flex-1 pb-20 md:pb-8">
           <div className="container max-w-6xl px-4 py-6">
+            <Card className="mb-6 border-primary/20">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">Descripción del perfil</CardTitle>
+                  <div className="flex gap-2">
+                    {!isEditingProfile ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleReformulate}
+                          disabled={isReformulating}
+                          className="gap-2 bg-transparent"
+                        >
+                          {isReformulating ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Wand2 className="h-4 w-4" />
+                          )}
+                          Reformular con feedback
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={handleStartEdit} className="gap-2 bg-transparent">
+                          <Edit className="h-4 w-4" />
+                          Editar
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button variant="outline" size="sm" onClick={handleCancelEdit}>
+                          Cancelar
+                        </Button>
+                        <Button size="sm" onClick={handleSaveProfile} className="gap-2">
+                          <Save className="h-4 w-4" />
+                          Guardar
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!isEditingProfile ? (
+                  <>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Nombre</p>
+                      <p className="text-base">{profile?.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Edad</p>
+                      <p className="text-base">{profile?.age} años</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Intereses</p>
+                      <p className="text-base">{profile?.interests || "No especificado"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Preferencias</p>
+                      <p className="text-base">{profile?.preferences || "No especificado"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Movilidad</p>
+                      <p className="text-base capitalize">{profile?.mobility}</p>
+                    </div>
+                    {profile?.schedule && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-1">Horarios</p>
+                        <p className="text-base">{profile.schedule}</p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-1 block">Nombre</label>
+                      <Input
+                        value={editedProfile?.name || ""}
+                        onChange={(e) => setEditedProfile({ ...editedProfile!, name: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-1 block">Edad</label>
+                      <Input
+                        type="number"
+                        value={editedProfile?.age || ""}
+                        onChange={(e) => setEditedProfile({ ...editedProfile!, age: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-1 block">Intereses</label>
+                      <Textarea
+                        value={editedProfile?.interests || ""}
+                        onChange={(e) => setEditedProfile({ ...editedProfile!, interests: e.target.value })}
+                        placeholder="Ej: tango, cocina, fútbol, historia..."
+                        rows={3}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-1 block">Preferencias</label>
+                      <Textarea
+                        value={editedProfile?.preferences || ""}
+                        onChange={(e) => setEditedProfile({ ...editedProfile!, preferences: e.target.value })}
+                        placeholder="Ej: prefiere contenido en español, le gusta la música clásica..."
+                        rows={3}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-1 block">Horarios</label>
+                      <Textarea
+                        value={editedProfile?.schedule || ""}
+                        onChange={(e) => setEditedProfile({ ...editedProfile!, schedule: e.target.value })}
+                        placeholder="Ej: mañanas libres, tardes ocupado..."
+                        rows={2}
+                      />
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
             <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-bold text-foreground mb-1">Contenido personalizado</h1>
@@ -282,15 +453,6 @@ export default function InicioPage() {
               </div>
             </div>
 
-            <Card className="mb-6 bg-accent/10 border-accent/30">
-              <CardContent className="py-4">
-                <p className="text-sm text-muted-foreground text-center">
-                  💡 <strong>Tip:</strong> Si {profile?.name} menciona un nuevo interés (como Elton John), usá el botón
-                  "Agregar intereses" para actualizar el contenido rápidamente
-                </p>
-              </CardContent>
-            </Card>
-
             <section className="mb-8">
               <div className="mb-4 flex items-center gap-2">
                 <Youtube className="h-6 w-6 text-primary" />
@@ -304,11 +466,18 @@ export default function InicioPage() {
                 className="mt-6 mb-8"
               >
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {[1, 2, 3].map((i) => (
+                  {visiblePlaceholders.map((i) => (
                     <div
                       key={i}
-                      className="min-h-[180px] bg-white border border-[#D0D5DD] rounded-xl shadow-sm overflow-hidden"
+                      className="group relative min-h-[180px] bg-white border border-[#D0D5DD] rounded-xl shadow-sm overflow-hidden"
                     >
+                      <button
+                        onClick={() => handleRemovePlaceholder(i)}
+                        className="absolute top-2 right-2 z-10 bg-background/90 hover:bg-destructive hover:text-destructive-foreground rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                        aria-label="Eliminar placeholder"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
                       {/* Área de imagen 16:9 */}
                       <div className="aspect-[16/9] bg-[#F4F4F5] flex items-center justify-center border-b border-[#E4E7EC]">
                         <svg width="24" height="24" viewBox="0 0 24 24" className="opacity-60">
