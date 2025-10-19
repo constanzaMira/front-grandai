@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Sparkles } from "lucide-react"
 import Link from "next/link"
+import { useToast } from "@/hooks/use-toast"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -19,13 +21,57 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-
     if (!isValid) return
 
     setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    setIsLoading(false)
-    router.push("/role")
+    try {
+      const res = await fetch("https://backend-grand.onrender.com/backend/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          contrasenia: password,
+        }),
+      })
+
+      const data = await res.json()
+      console.log("[Login] Backend response:", data)
+
+      if (!res.ok) {
+        throw new Error(data.error || "Error al iniciar sesión")
+      }
+
+      // ✅ Guardar credencial en localStorage
+      if (data.credencial_id) {
+        localStorage.setItem(
+          "userCredential",
+          JSON.stringify({
+            email,
+            credencial_id: data.credencial_id,
+            loggedAt: new Date().toISOString(),
+          }),
+        )
+      }
+
+      toast({
+        title: "Inicio de sesión exitoso",
+        description: `Bienvenido/a ${email}`,
+      })
+
+      router.push("/onboarding") // o "/inicio" si ya tiene perfil creado
+    } catch (err: any) {
+      console.error("[Login error]", err)
+      toast({
+        title: "Error al iniciar sesión",
+        description: err.message || "Verificá tus credenciales e intentá de nuevo.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -82,7 +128,7 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Ingresá cualquier email y contraseña para continuar
+          Ingresá tu correo y contraseña registrados para continuar.
         </p>
       </div>
     </div>
