@@ -1,30 +1,50 @@
-# Grand AI app design
+# **Grand AI**
 
-*Automatically synced with your [v0.app](https://v0.app) deployments*
+**Grand AI** es una plataforma digital que combina entretenimiento, comunidad y acompañamiento para adultos mayores.  
+Su objetivo principal es acercar el acceso al contenido cultural, social y recreativo mediante una experiencia tecnológica simple, inclusiva y personalizada.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/guadaiewdiukow-8940s-projects/v0-grand-ai-app-design)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/projects/xpMuGc224PF)
+---
 
-## Overview
+## **Descripción general**
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
+**Grand AI** busca reducir la brecha digital generacional ofreciendo un entorno donde los adultos mayores puedan acceder fácilmente a videos, podcasts, actividades y eventos adaptados a sus intereses.  
+La aplicación utiliza **inteligencia artificial** para generar recomendaciones personalizadas basadas en los gustos, hábitos y preferencias del usuario.
 
-## Deployment
+La plataforma permite que **familiares o cuidadores** creen y gestionen perfiles de adultos mayores, cargando información sobre sus intereses, rutinas o preferencias.  
+De esta forma, **Grand AI** no solo funciona como un asistente de entretenimiento, sino también como un espacio de conexión familiar y social.
 
-Your project is live at:
+---
 
-**[https://vercel.com/guadaiewdiukow-8940s-projects/v0-grand-ai-app-design](https://vercel.com/guadaiewdiukow-8940s-projects/v0-grand-ai-app-design)**
+## **Objetivo**
 
-## Build your app
+Promover el bienestar y la inclusión digital de los adultos mayores mediante el uso de tecnologías accesibles, personalizadas y centradas en las personas.
 
-Continue building your app on:
+---
 
-**[https://v0.app/chat/projects/xpMuGc224PF](https://v0.app/chat/projects/xpMuGc224PF)**
+## **Principales funcionalidades**
 
-## How It Works
+- **Creación de perfiles:** los familiares o acompañantes pueden registrar al adulto mayor y definir sus intereses, edad y hábitos.  
+- **Generación de contenido personalizado:** el sistema recomienda videos, podcasts y actividades adaptadas a cada perfil.  
+- **Exploración de eventos y actividades locales:** integración con información cultural o recreativa relevante.  
+- **Actualización periódica de contenido:** la plataforma renueva las sugerencias de forma automática según la frecuencia elegida.  
+- **Panel de gestión:** almacenamiento local y visualización del contenido generado, con posibilidad de ampliación futura a anuncios o espacios comunitarios.
 
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+---
+
+## **Cómo utilizar la aplicación**
+
+Acceder a la versión desplegada en:  
+👉 [https://grand-ai.vercel.app](https://grand-ai.vercel.app)
+
+Iniciar sesión con el siguiente usuario de demostración:
+
+```json
+{
+  "mail": "usuario@ejemplo.com",
+  "contrasenia": "123456"
+}
+
+Una vez dentro, se puede:
+Crear o seleccionar un perfil de adulto mayor.
+Generar contenido personalizado basado en sus intereses.
+Explorar el material disponible y las recomendaciones
