@@ -116,20 +116,19 @@ export default function HogarPage() {
           console.error("[v0] Could not extract video ID from URL:", currentContent.url)
           window.open(currentContent.url, "_blank")
         }
-      } else if (platform === "Spotify") {
-        const trackId = extractSpotifyTrackId(currentContent.url)
-        if (trackId) {
-          console.log("[v0] Navigating to Spotify track:", trackId)
-          router.push(`/hogar-player?podcastId=${trackId}`)
+       } else if (platform === "Spotify") {
+        if (currentContent.url) {
+          console.log("[v0] Navigating to Spotify embed URL:", currentContent.url)
+          // 🔹 Pasamos la URL embebida directamente al reproductor
+          router.push(`/hogar-player?spotifyUrl=${encodeURIComponent(currentContent.url)}`)
         } else {
-          console.error("[v0] Could not extract Spotify track ID from URL:", currentContent.url)
-          window.open(currentContent.url, "_blank")
+          console.error("[v0] No Spotify URL found for content:", currentContent)
         }
       }
     } else if (currentContent.type === "Video" && "videoId" in currentContent) {
       router.push(`/hogar-player?videoId=${currentContent.videoId}`)
     } else if (currentContent.type === "Podcast" && "podcastId" in currentContent) {
-      router.push(`/hogar-player?podcastId=${currentContent.podcastId}`)
+      router.push(`/hogar-player?spotifyUrl=${encodeURIComponent(`https://open.spotify.com/embed/episode/${currentContent.podcastId}`)}`)
     } else {
       router.push("/hogar-player")
     }
