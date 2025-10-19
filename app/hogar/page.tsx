@@ -2,8 +2,9 @@
 
 import { useRouter } from "next/navigation"
 import { Play, Calendar, Bell } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AccesibilidadRapida } from "@/components/hogar/accesibilidad-rapida"
+import { extractYouTubeId } from "@/lib/youtube"
 
 const CONTENT_ITEMS = [
   {
@@ -40,11 +41,36 @@ export default function HogarPage() {
   const router = useRouter()
   const [logoTouchStart, setLogoTouchStart] = useState<number | null>(null)
   const [currentContentIndex, setCurrentContentIndex] = useState(0)
+  const [backendContent, setBackendContent] = useState<any[]>([])
+  const [useBackendContent, setUseBackendContent] = useState(false)
 
-  const currentContent = CONTENT_ITEMS[currentContentIndex]
+  useEffect(() => {
+    console.log("[v0] Loading content from localStorage")
+    const storedContent = localStorage.getItem("hogarContent")
+    if (storedContent) {
+      try {
+        const parsed = JSON.parse(storedContent)
+        console.log("[v0] Parsed content:", parsed)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setBackendContent(parsed)
+          setUseBackendContent(true)
+          console.log("[v0] Using backend content with", parsed.length, "items")
+        } else {
+          console.log("[v0] Backend content is empty, using fallback")
+        }
+      } catch (error) {
+        console.error("[v0] Error parsing stored content:", error)
+      }
+    } else {
+      console.log("[v0] No stored content found, using fallback")
+    }
+  }, [])
+
+  const contentToUse = useBackendContent ? backendContent : CONTENT_ITEMS
+  const currentContent = useBackendContent ? backendContent[currentContentIndex] : CONTENT_ITEMS[currentContentIndex]
 
   const handleNextContent = () => {
-    setCurrentContentIndex((prev) => (prev + 1) % CONTENT_ITEMS.length)
+    setCurrentContentIndex((prev) => (prev + 1) % contentToUse.length)
   }
 
   const handleLogoTouchStart = () => {
@@ -59,7 +85,16 @@ export default function HogarPage() {
   }
 
   const handlePlay = () => {
-    if (currentContent.type === "Video" && "videoId" in currentContent) {
+    if (useBackendContent && currentContent) {
+      const videoId = extractYouTubeId(currentContent.url)
+      if (videoId) {
+        console.log("[v0] Navigating to video player with ID:", videoId)
+        router.push(`/hogar-player?videoId=${videoId}`)
+      } else {
+        console.error("[v0] Could not extract video ID from URL:", currentContent.url)
+        window.open(currentContent.url, "_blank")
+      }
+    } else if (currentContent.type === "Video" && "videoId" in currentContent) {
       router.push(`/hogar-player?videoId=${currentContent.videoId}`)
     } else if (currentContent.type === "Podcast" && "podcastId" in currentContent) {
       router.push(`/hogar-player?podcastId=${currentContent.podcastId}`)
@@ -68,17 +103,21 @@ export default function HogarPage() {
     }
   }
 
+  const displayTitle = useBackendContent
+    ? currentContent?.titulo || "Sin título"
+    : `${currentContent.type}: ${currentContent.title}`
+
+  const displaySubtitle = useBackendContent
+    ? "Video de YouTube"
+    : `${currentContent.duration} · ${currentContent.action}`
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 text-[#2C3E2F]">
       <main className="p-6 space-y-6 pb-32">
         {/* Ahora card */}
         <div className="bg-white rounded-2xl p-8 shadow-lg border-2 border-[#2C3E2F]/10">
-          <h2 className="text-3xl font-bold mb-3 leading-tight">
-            {currentContent.type}: {currentContent.title}
-          </h2>
-          <p className="text-2xl text-[#2C3E2F]/70 mb-6">
-            {currentContent.duration} · {currentContent.action}
-          </p>
+          <h2 className="text-3xl font-bold mb-3 leading-tight">{displayTitle}</h2>
+          <p className="text-2xl text-[#2C3E2F]/70 mb-6">{displaySubtitle}</p>
 
           <div className="space-y-4">
             <button
@@ -88,12 +127,14 @@ export default function HogarPage() {
               <Play className="w-10 h-10" fill="white" />
               Reproducir
             </button>
-            <button
-              onClick={handleNextContent}
-              className="w-full h-20 bg-[#E5E1D8] text-[#2C3E2F] rounded-2xl text-2xl font-semibold active:scale-95 transition-transform"
-            >
-              Siguiente
-            </button>
+            {contentToUse.length > 1 && (
+              <button
+                onClick={handleNextContent}
+                className="w-full h-20 bg-[#E5E1D8] text-[#2C3E2F] rounded-2xl text-2xl font-semibold active:scale-95 transition-transform"
+              >
+                Siguiente
+              </button>
+            )}
           </div>
         </div>
 

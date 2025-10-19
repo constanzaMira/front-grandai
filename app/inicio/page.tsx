@@ -6,14 +6,11 @@ import { AppHeader } from "@/components/app-header"
 import { BottomNav } from "@/components/bottom-nav"
 import { DesktopNav } from "@/components/desktop-nav"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Sparkles, Youtube, Music, Calendar, Loader2, RefreshCw, X, Plus, Edit, Save, Wand2 } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Sparkles, Youtube, Loader2, RefreshCw, Plus } from "lucide-react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import { useToast } from "@/hooks/use-toast"
-import { Textarea } from "@/components/ui/textarea"
-import { Input } from "@/components/ui/input"
+import { extractYouTubeId } from "@/lib/youtube"
 
 interface ElderProfile {
   name: string
@@ -85,45 +82,54 @@ export default function InicioPage() {
   }
 
   useEffect(() => {
+    console.log("[v0] InicioPage mounted, setting hydrated to true")
     setHydrated(true)
   }, [])
 
   useEffect(() => {
-    // Esperar a que la autenticación esté lista y la app esté hidratada
-    if (!hydrated || authLoading) return
+    console.log("[v0] Main useEffect triggered - hydrated:", hydrated, "authLoading:", authLoading)
 
-    console.log("[v0] Inicio page mounted")
+    if (!hydrated || authLoading) {
+      console.log("[v0] Skipping main useEffect - waiting for hydration or auth")
+      return
+    }
+
+    console.log("[v0] Reading elderProfile from localStorage")
     const storedProfile = localStorage.getItem("elderProfile")
-    console.log("[v0] Stored profile:", storedProfile)
 
     if (!storedProfile) {
-      console.log("[v0] No profile found, redirecting to onboarding")
+      console.log("[v0] No elderProfile found, redirecting to onboarding")
       router.push("/onboarding")
       return
     }
 
     const parsedProfile = JSON.parse(storedProfile)
-    console.log("[v0] Parsed profile:", parsedProfile)
+    console.log("[v0] Elder profile loaded:", parsedProfile.name)
     setProfile(parsedProfile)
 
+    console.log("[v0] Reading generatedContent from localStorage")
     const storedContent = localStorage.getItem("generatedContent")
-    console.log("[v0] Stored content:", storedContent)
 
     if (storedContent) {
+      console.log("[v0] Found stored content, parsing...")
       const parsedContent = JSON.parse(storedContent)
-      console.log("[v0] Parsed content:", parsedContent)
-      setContent(parsedContent) // 👈 Se ejecuta correctamente ahora
+      console.log(
+        "[v0] Stored content parsed - Videos:",
+        parsedContent.videos?.length,
+        "Podcasts:",
+        parsedContent.podcasts?.length,
+      )
+      setContent(parsedContent)
       calculateActivitySummary(parsedContent)
       setIsLoading(false)
     } else {
-      console.log("[v0] No content found, generating...")
+      console.log("[v0] No stored content found, calling generateContent")
       generateContent(parsedProfile)
     }
-  }, [hydrated, authLoading]) // 👈 eliminá router de las dependencias
+  }, [hydrated, authLoading, router])
 
   const calculateActivitySummary = (contentData: GeneratedContent) => {
     const allContent = [...(contentData.videos || []), ...(contentData.podcasts || []), ...(contentData.events || [])]
-
     const feedback = JSON.parse(localStorage.getItem("contentFeedback") || "{}")
 
     let liked = 0
@@ -149,99 +155,158 @@ export default function InicioPage() {
   }
 
   const generateContent = async (profileData: ElderProfile) => {
-    console.log("[v0] generateContent called with profile:", profileData)
+    console.log("[v0] === generateContent START ===")
     setIsLoading(true)
 
-    const fallbackContent: GeneratedContent = {
-      videos: [
-        {
-          title: "Historia del tango argentino - Documental completo",
-          channel: "Historia Argentina",
-          duration: "45:20",
-          reason: `Basado en el interés de ${profileData.name} en la historia y la música`,
-          url: "https://youtube.com/watch?v=dQw4w9WgXcQ",
-          thumbnail: "/tango-argentino-dancers.jpg",
-        },
-        {
-          title: "Recetas tradicionales uruguayas paso a paso",
-          channel: "Cocina del Río de la Plata",
-          duration: "28:15",
-          reason: "Contenido sobre cocina tradicional de la región",
-          url: "https://youtube.com/watch?v=dQw4w9WgXcQ",
-          thumbnail: "/uruguayan-traditional-food.jpg",
-        },
-        {
-          title: "Mejores jugadas de Peñarol - Clásicos históricos",
-          channel: "Fútbol Uruguayo",
-          duration: "35:40",
-          reason: `Contenido deportivo relacionado con los intereses de ${profileData.name}`,
-          url: "https://youtube.com/watch?v=dQw4w9WgXcQ",
-          thumbnail: "/penarol-football-stadium.jpg",
-        },
-      ],
-      podcasts: [
-        {
-          title: "Historias del Río de la Plata",
-          host: "Radio Nacional",
-          duration: "42 min",
-          reason: "Podcast sobre historia regional",
-          platform: "Spotify",
-          albumArt: "/rio-de-la-plata-history.jpg",
-        },
-        {
-          title: "Música de nuestra tierra",
-          host: "Folklore y Tradición",
-          duration: "38 min",
-          reason: "Contenido musical tradicional",
-          platform: "Spotify",
-          albumArt: "/folklore-music-album.jpg",
-        },
-        {
-          title: "Charlas de café - Historias de vida",
-          host: "Conversaciones",
-          duration: "50 min",
-          reason: "Podcast conversacional sobre experiencias de vida",
-          platform: "Spotify",
-          albumArt: "/coffee-conversation-podcast.jpg",
-        },
-      ],
-      events: [
-        {
-          title: "Misa dominical",
-          location: "Parroquia del barrio",
-          date: "Domingo 20 Oct",
-          time: "10:00",
-          reason: "Actividad religiosa semanal",
-          type: "Religioso",
-          locationImage: "/grand-church-interior.png",
-        },
-        {
-          title: "Bingo comunitario",
-          location: "Centro de jubilados",
-          date: "Miércoles 23 Oct",
-          time: "15:00",
-          reason: "Actividad social recreativa",
-          type: "Social",
-          locationImage: "/community-center-bingo.jpg",
-        },
-        {
-          title: "Taller de tejido",
-          location: "Club del barrio",
-          date: "Jueves 24 Oct",
-          time: "16:00",
-          reason: "Actividad manual y social",
-          type: "Taller",
-          locationImage: "/knitting-workshop.jpg",
-        },
-      ],
-    }
+    try {
+      const credencialId = localStorage.getItem("credencial_id") || "1"
+      console.log(`[v0] Using credencial_id: ${credencialId}`)
+      console.log(`[v0] Calling API: /api/proxy/list-content/${credencialId}`)
 
-    console.log("[v0] Setting fallback content:", fallbackContent)
-    setContent(fallbackContent)
-    localStorage.setItem("generatedContent", JSON.stringify(fallbackContent))
-    calculateActivitySummary(fallbackContent)
-    setIsLoading(false)
-    console.log("[v0] Content generation complete")
+      const response = await fetch(`/api/proxy/list-content/${credencialId}`)
+      console.log(`[v0] API response status: ${response.status}`)
+
+      if (!response.ok) {
+        console.error(`[v0] API response not OK: ${response.status} ${response.statusText}`)
+        throw new Error("Failed to fetch content from backend")
+      }
+
+      const backendContent = await response.json()
+      console.log(`[v0] Backend content received - Array length: ${backendContent.length}`)
+      console.log(`[v0] First item:`, backendContent[0])
+
+      const transformedContent: GeneratedContent = {
+        videos: backendContent
+          .filter((item: any) => item.plataforma === "YouTube")
+          .map((item: any) => {
+            const videoId = extractYouTubeId(item.url)
+            console.log(`[v0] Processing video: ${item.titulo}, videoId: ${videoId}`)
+            return {
+              title: item.titulo,
+              channel: "YouTube",
+              duration: "",
+              reason: `Contenido personalizado para ${profileData.name}`,
+              url: item.url,
+              thumbnail: videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : "",
+            }
+          }),
+        podcasts: backendContent
+          .filter((item: any) => item.plataforma === "Spotify")
+          .map((item: any) => ({
+            title: item.titulo,
+            host: "Spotify",
+            duration: "",
+            reason: `Contenido personalizado para ${profileData.name}`,
+            platform: "Spotify",
+            albumArt: "/placeholder.svg",
+          })),
+        events: [],
+      }
+
+      console.log(
+        `[v0] Transformed content - Videos: ${transformedContent.videos.length}, Podcasts: ${transformedContent.podcasts.length}`,
+      )
+      console.log(`[v0] Saving to localStorage and updating state`)
+
+      setContent(transformedContent)
+      localStorage.setItem("generatedContent", JSON.stringify(transformedContent))
+      calculateActivitySummary(transformedContent)
+      setIsLoading(false)
+
+      console.log("[v0] === generateContent SUCCESS ===")
+    } catch (error) {
+      console.error("[v0] === generateContent ERROR ===")
+      console.error("[v0] Error details:", error)
+
+      const fallbackContent: GeneratedContent = {
+        videos: [
+          {
+            title: "Historia del tango argentino - Documental completo",
+            channel: "Historia Argentina",
+            duration: "45:20",
+            reason: `Basado en el interés de ${profileData.name} en la historia y la música`,
+            url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+          },
+          {
+            title: "Recetas tradicionales uruguayas paso a paso",
+            channel: "Cocina del Río de la Plata",
+            duration: "28:15",
+            reason: "Contenido sobre cocina tradicional de la región",
+            url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+          },
+          {
+            title: "Mejores jugadas de Peñarol - Clásicos históricos",
+            channel: "Fútbol Uruguayo",
+            duration: "35:40",
+            reason: `Contenido deportivo relacionado con los intereses de ${profileData.name}`,
+            url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+          },
+        ],
+        podcasts: [
+          {
+            title: "Historias del Río de la Plata",
+            host: "Radio Nacional",
+            duration: "42 min",
+            reason: "Podcast sobre historia regional",
+            platform: "Spotify",
+            albumArt: "/placeholder.svg",
+          },
+          {
+            title: "Música de nuestra tierra",
+            host: "Folklore y Tradición",
+            duration: "38 min",
+            reason: "Contenido musical tradicional",
+            platform: "Spotify",
+            albumArt: "/placeholder.svg",
+          },
+          {
+            title: "Charlas de café - Historias de vida",
+            host: "Conversaciones",
+            duration: "50 min",
+            reason: "Podcast conversacional sobre experiencias de vida",
+            platform: "Spotify",
+            albumArt: "/placeholder.svg",
+          },
+        ],
+        events: [
+          {
+            title: "Misa dominical",
+            location: "Parroquia del barrio",
+            date: "Domingo 20 Oct",
+            time: "10:00",
+            reason: "Actividad religiosa semanal",
+            type: "Religioso",
+            locationImage: "/placeholder.svg",
+          },
+          {
+            title: "Bingo comunitario",
+            location: "Centro de jubilados",
+            date: "Miércoles 23 Oct",
+            time: "15:00",
+            reason: "Actividad social recreativa",
+            type: "Social",
+            locationImage: "/placeholder.svg",
+          },
+          {
+            title: "Taller de tejido",
+            location: "Club del barrio",
+            date: "Jueves 24 Oct",
+            time: "16:00",
+            reason: "Actividad manual y social",
+            type: "Taller",
+            locationImage: "/placeholder.svg",
+          },
+        ],
+      }
+
+      setContent(fallbackContent)
+      localStorage.setItem("generatedContent", JSON.stringify(fallbackContent))
+      calculateActivitySummary(fallbackContent)
+      setIsLoading(false)
+    }
   }
 
   const handleRegenerate = async () => {
@@ -293,10 +358,14 @@ export default function InicioPage() {
     setIsReformulating(false)
   }
 
-  console.log("[v0] Rendering inicio page, content:", content)
-  console.log("[v0] Videos count:", content?.videos?.length)
-  console.log("[v0] Podcasts count:", content?.podcasts?.length)
-  console.log("[v0] Events count:", content?.events?.length)
+  console.log(
+    "[v0] Rendering InicioPage - isLoading:",
+    isLoading,
+    "content:",
+    content ? "exists" : "null",
+    "videos:",
+    content?.videos?.length,
+  )
 
   if (isLoading || authLoading) {
     return (
@@ -329,125 +398,6 @@ export default function InicioPage() {
 
         <main className="flex-1 pb-20 md:pb-8">
           <div className="container max-w-6xl px-4 py-6">
-            <Card className="mb-6 border-primary/20">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Descripción del perfil</CardTitle>
-                  <div className="flex gap-2">
-                    {!isEditingProfile ? (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleReformulate}
-                          disabled={isReformulating}
-                          className="gap-2 bg-transparent"
-                        >
-                          {isReformulating ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Wand2 className="h-4 w-4" />
-                          )}
-                          Reformular con feedback
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={handleStartEdit} className="gap-2 bg-transparent">
-                          <Edit className="h-4 w-4" />
-                          Editar
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button variant="outline" size="sm" onClick={handleCancelEdit}>
-                          Cancelar
-                        </Button>
-                        <Button size="sm" onClick={handleSaveProfile} className="gap-2">
-                          <Save className="h-4 w-4" />
-                          Guardar
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {!isEditingProfile ? (
-                  <>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground mb-1">Nombre</p>
-                      <p className="text-base">{profile?.name}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground mb-1">Edad</p>
-                      <p className="text-base">{profile?.age} años</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground mb-1">Intereses</p>
-                      <p className="text-base">{profile?.interests || "No especificado"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground mb-1">Preferencias</p>
-                      <p className="text-base">{profile?.preferences || "No especificado"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground mb-1">Movilidad</p>
-                      <p className="text-base capitalize">{profile?.mobility}</p>
-                    </div>
-                    {profile?.schedule && (
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground mb-1">Horarios</p>
-                        <p className="text-base">{profile.schedule}</p>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-1 block">Nombre</label>
-                      <Input
-                        value={editedProfile?.name || ""}
-                        onChange={(e) => setEditedProfile({ ...editedProfile!, name: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-1 block">Edad</label>
-                      <Input
-                        type="number"
-                        value={editedProfile?.age || ""}
-                        onChange={(e) => setEditedProfile({ ...editedProfile!, age: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-1 block">Intereses</label>
-                      <Textarea
-                        value={editedProfile?.interests || ""}
-                        onChange={(e) => setEditedProfile({ ...editedProfile!, interests: e.target.value })}
-                        placeholder="Ej: tango, cocina, fútbol, historia..."
-                        rows={3}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-1 block">Preferencias</label>
-                      <Textarea
-                        value={editedProfile?.preferences || ""}
-                        onChange={(e) => setEditedProfile({ ...editedProfile!, preferences: e.target.value })}
-                        placeholder="Ej: prefiere contenido en español, le gusta la música clásica..."
-                        rows={3}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-1 block">Horarios</label>
-                      <Textarea
-                        value={editedProfile?.schedule || ""}
-                        onChange={(e) => setEditedProfile({ ...editedProfile!, schedule: e.target.value })}
-                        placeholder="Ej: mañanas libres, tardes ocupado..."
-                        rows={2}
-                      />
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
             <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-bold text-foreground mb-1">Contenido personalizado</h1>
@@ -464,237 +414,44 @@ export default function InicioPage() {
               </div>
             </div>
 
-            <div
-              key={content?.videos?.[0]?.url || "empty"}
-              className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
-              id="placeholder-cards"
-            >
-              {(() => {
-                console.log("[v0] ===== PLACEHOLDER CARDS SECTION =====")
-                console.log("[v0] content:", content)
-                console.log("[v0] content?.videos:", content?.videos)
-                console.log("[v0] content?.videos?.length:", content?.videos?.length)
-
-                const videosToShow = content?.videos?.length ? content.videos.slice(0, 3) : [null, null, null]
-                console.log("[v0] videosToShow:", videosToShow)
-                console.log("[v0] videosToShow.length:", videosToShow.length)
-
-                return videosToShow.map((video, i) => {
-                  console.log(`[v0] Rendering card ${i}:`, video)
-                  console.log(`[v0] Card ${i} - video exists:`, !!video)
-                  console.log(`[v0] Card ${i} - video.url:`, video?.url)
-                  console.log(`[v0] Card ${i} - video.thumbnail:`, video?.thumbnail)
-                  console.log(`[v0] Card ${i} - video.title:`, video?.title)
-
-                  return (
-                    <Card
-                      key={i}
-                      className="h-[180px] bg-white border border-[#E5E7EB] rounded-xl shadow-sm overflow-hidden"
-                    >
-                      {video ? (
-                        <>
-                          {console.log(`[v0] Card ${i} - Rendering VIDEO card`)}
-                          <a href={video.url} target="_blank" rel="noopener noreferrer" className="block h-full">
-                            <div className="h-full flex flex-col">
-                              <div className="flex-1 relative bg-[#F4F4F5]">
-                                {console.log(
-                                  `[v0] Card ${i} - About to render Image with src:`,
-                                  video.thumbnail || "/placeholder.svg",
-                                )}
-                                <Image
-                                  src={video.thumbnail || "/placeholder.svg"}
-                                  alt={video.title}
-                                  fill
-                                  className="object-cover"
-                                  onLoad={() => {
-                                    console.log(`[v0] Card ${i} - Image LOADED successfully:`, video.thumbnail)
-                                  }}
-                                  onError={(e) => {
-                                    console.log(`[v0] Card ${i} - Image ERROR:`, e)
-                                    const el = e.currentTarget as HTMLImageElement
-                                    console.log(`[v0] Card ${i} - Current src:`, el.src)
-                                    if (el.src.includes("maxresdefault")) {
-                                      console.log(`[v0] Card ${i} - Trying sddefault...`)
-                                      el.src = el.src.replace("maxresdefault", "sddefault")
-                                    } else if (el.src.includes("sddefault")) {
-                                      console.log(`[v0] Card ${i} - Trying hqdefault...`)
-                                      el.src = el.src.replace("sddefault", "hqdefault")
-                                    } else {
-                                      console.log(`[v0] Card ${i} - Using placeholder`)
-                                      el.src = "/placeholder.svg"
-                                    }
-                                  }}
-                                />
-                              </div>
-                              <div className="p-3">
-                                <p className="text-sm font-medium line-clamp-2">{video.title}</p>
-                              </div>
-                            </div>
-                          </a>
-                        </>
-                      ) : (
-                        <>
-                          {console.log(`[v0] Card ${i} - Rendering PLACEHOLDER card`)}
-                          <div className="h-full flex flex-col">
-                            <div className="flex-1 bg-[#F4F4F5] flex items-center justify-center border-b border-[#E4E7EC]">
-                              <svg width="24" height="24" viewBox="0 0 24 24" className="opacity-60">
-                                <path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14" fill="none" stroke="currentColor" />
-                                <path d="m3 17 5-5 4 4 3-3 6 6" fill="none" stroke="currentColor" />
-                              </svg>
-                            </div>
-                            <div className="p-3">
-                              <p className="text-sm font-medium text-foreground">Título provisional</p>
-                              <p className="text-xs text-muted-foreground">Descripción breve</p>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </Card>
-                  )
-                })
-              })()}
-            </div>
-
-            <section className="mb-8">
-              <div className="mb-4 flex items-center gap-2">
-                <Youtube className="h-6 w-6 text-primary" />
-                <h2 className="text-xl font-semibold">Videos de YouTube</h2>
-              </div>
-
-              {(content?.videos?.length || 0) > 3 && (
-                <div className="overflow-x-auto pb-4">
-                  <div className="flex gap-4 min-w-max md:grid md:grid-cols-2 lg:grid-cols-3 md:min-w-0">
-                    {content?.videos?.slice(3).map((video, index) => (
-                      <Card
-                        key={index}
-                        className="group relative hover:shadow-md transition-shadow overflow-hidden w-[300px] md:w-auto flex-shrink-0"
-                      >
-                        <a href={video.url} target="_blank" rel="noopener noreferrer" className="block">
-                          <div className="relative aspect-video bg-muted">
-                            <Image
-                              src={video.thumbnail || "/placeholder.svg"}
-                              alt={video.title}
-                              fill
-                              className="object-cover"
-                              onError={(e) => {
-                                const el = e.currentTarget as HTMLImageElement
-                                if (el.src.includes("maxresdefault")) {
-                                  el.src = el.src.replace("maxresdefault", "sddefault")
-                                } else if (el.src.includes("sddefault")) {
-                                  el.src = el.src.replace("sddefault", "hqdefault")
-                                } else {
-                                  el.src = "/placeholder.svg"
-                                }
-                              }}
-                            />
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
-                              <div className="bg-red-600 rounded-full p-3">
-                                <Youtube className="h-6 w-6 text-white" />
-                              </div>
-                            </div>
-                          </div>
-                          <div className="p-3">
-                            <p className="text-sm font-medium text-foreground line-clamp-2">{video.title}</p>
-                          </div>
-                        </a>
-                      </Card>
-                    ))}
-                  </div>
+            {content?.videos && content.videos.length > 0 && (
+              <section className="mb-8">
+                <div className="mb-4 flex items-center gap-2">
+                  <Youtube className="h-6 w-6 text-red-600" />
+                  <h2 className="text-xl font-semibold">Videos de YouTube</h2>
                 </div>
-              )}
-            </section>
 
-            <section className="mb-8">
-              <div className="mb-4 flex items-center gap-2">
-                <Music className="h-6 w-6 text-primary" />
-                <h2 className="text-xl font-semibold">Podcasts de Spotify</h2>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {content?.podcasts?.map((podcast, index) => (
-                  <Card key={index} className="group relative hover:shadow-md transition-shadow overflow-hidden">
-                    <button
-                      onClick={() => handleRemoveContent("podcasts", index)}
-                      className="absolute top-2 right-2 z-10 bg-background/90 hover:bg-destructive hover:text-destructive-foreground rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-                      aria-label="Eliminar podcast"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                    <div className="relative aspect-square bg-muted">
-                      <Image
-                        src={podcast.albumArt || "/placeholder.svg"}
-                        alt={podcast.title}
-                        fill
-                        className="object-cover"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-black/60 to-transparent">
-                        <div className="bg-green-600 rounded-full p-3">
-                          <Music className="h-6 w-6 text-white" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {content.videos.map((video, index) => {
+                    const videoId = extractYouTubeId(video.url)
+
+                    return (
+                      <button
+                        key={`video-${index}`}
+                        onClick={() => {
+                          if (videoId) {
+                            router.push(`/video-player?videoId=${videoId}&title=${encodeURIComponent(video.title)}`)
+                          }
+                        }}
+                        className="relative group bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 rounded-lg p-6 text-left hover:shadow-lg transition-all hover:scale-[1.02] border-2 border-red-200 dark:border-red-800"
+                      >
+                        <div className="absolute top-3 right-3 bg-red-600 rounded-full p-2 group-hover:scale-110 transition-transform">
+                          <Youtube className="h-5 w-5 text-white" />
                         </div>
-                      </div>
-                    </div>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base line-clamp-2">{podcast.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground truncate">{podcast.host}</span>
-                        <Badge variant="secondary">{podcast.duration}</Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">{podcast.reason}</p>
-                      <Button className="w-full bg-transparent" size="sm" variant="outline">
-                        Escuchar en {podcast.platform}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </section>
 
-            <section className="mb-8">
-              <div className="mb-4 flex items-center gap-2">
-                <Calendar className="h-6 w-6 text-primary" />
-                <h2 className="text-xl font-semibold">Eventos cercanos</h2>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {content?.events?.map((event, index) => (
-                  <Card key={index} className="group relative hover:shadow-md transition-shadow overflow-hidden">
-                    <button
-                      onClick={() => handleRemoveContent("events", index)}
-                      className="absolute top-2 right-2 z-10 bg-background/90 hover:bg-destructive hover:text-destructive-foreground rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-                      aria-label="Eliminar evento"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                    <div className="relative aspect-video bg-muted">
-                      <Image
-                        src={event.locationImage || "/placeholder.svg"}
-                        alt={event.title}
-                        fill
-                        className="object-cover"
-                      />
-                      <Badge className="absolute top-2 left-2" variant="secondary">
-                        {event.type}
-                      </Badge>
-                    </div>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base line-clamp-2">{event.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="space-y-1 text-sm">
-                        <p className="text-muted-foreground truncate">{event.location}</p>
-                        <p className="font-medium">
-                          {event.date} • {event.time}
-                        </p>
-                      </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">{event.reason}</p>
-                      <Button className="w-full" size="sm">
-                        Agendar evento
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </section>
+                        <h3 className="font-semibold text-base line-clamp-3 pr-12 mb-2">{video.title}</h3>
+
+                        {video.channel && <p className="text-sm text-muted-foreground mb-2">{video.channel}</p>}
+
+                        {video.duration && <p className="text-xs text-muted-foreground">{video.duration}</p>}
+
+                        <div className="mt-4 text-sm font-medium text-red-600 dark:text-red-400">Click para ver →</div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </section>
+            )}
 
             <Card className="bg-primary/5 border-primary/20">
               <CardContent className="flex flex-col items-center justify-center py-8 text-center">
