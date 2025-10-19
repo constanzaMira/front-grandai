@@ -43,6 +43,6 @@ mail: usuario@ejemplo.com
 contrasenia: 123456
 
 Una vez dentro, se puede:
-  1. Crear o seleccionar un perfil de adulto mayor.
+  1. Crear o seleccionar un perfil de adulto mayor. En caso de que no tenga el perfil de adulto mayor creado, lo primero que se debera hacer es crearlo.
   2. Generar contenido personalizado basado en sus intereses.
   3. Explorar el material disponible y las recomendaciones
