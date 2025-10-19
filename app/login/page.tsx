@@ -61,7 +61,7 @@ export default function LoginPage() {
         description: `Bienvenido/a ${email}`,
       })
 
-      router.push("/onboarding") // o "/inicio" si ya tiene perfil creado
+      router.push("/role") 
     } catch (err: any) {
       console.error("[Login error]", err)
       toast({
