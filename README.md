@@ -34,17 +34,14 @@ Promover el bienestar y la inclusión digital de los adultos mayores mediante el
 ## **Cómo utilizar la aplicación**
 
 Acceder a la versión desplegada en:  
-👉 [https://grand-ai.vercel.app](https://grand-ai.vercel.app)
+👉 [https://front-grandai.vercel.app/]
 
 Iniciar sesión con el siguiente usuario de demostración:
 
-```json
-{
-  "mail": "usuario@ejemplo.com",
-  "contrasenia": "123456"
-}
+mail: usuario@ejemplo.com
+contrasenia: 123456
 
 Una vez dentro, se puede:
-Crear o seleccionar un perfil de adulto mayor.
-Generar contenido personalizado basado en sus intereses.
-Explorar el material disponible y las recomendaciones
+  1. Crear o seleccionar un perfil de adulto mayor.
+  2. Generar contenido personalizado basado en sus intereses.
+  3. Explorar el material disponible y las recomendaciones
