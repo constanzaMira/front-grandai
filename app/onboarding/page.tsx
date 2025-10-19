@@ -48,7 +48,7 @@ export default function OnboardingPage() {
         descripcion: formData.interests,
         movilidad: formData.mobility,
         frecuencia_update: formData.updateFrequency,
-        credencial_id: 1,
+        credencial_id: 1, // Restored credencial_id: 1 to the payload
       }
       console.log("[v0] Sending request to API proxy:", payload)
 
@@ -71,15 +71,11 @@ export default function OnboardingPage() {
       const data = await response.json()
       console.log("[v0] Backend response:", data)
 
-      if (!data.credencial_id) {
-        console.warn("[v0] Warning: No credencial_id in response")
-      }
-
       localStorage.setItem(
         "elderProfile",
         JSON.stringify({
           ...formData,
-          credencial_id: data.credencial_id,
+          credencial_id: 1,
           createdAt: new Date().toISOString(),
         }),
       )
@@ -132,45 +128,75 @@ export default function OnboardingPage() {
 
       console.log("[v0] Generating content for credencial_id:", credencialId)
 
-      const response = await fetch(`/api/proxy/generate-content/${credencialId}`, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({}), // empty body
-      })
+      const [youtubeResponse, spotifyResponse] = await Promise.all([
+        fetch(`/api/proxy/generate-content/${credencialId}`, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({}),
+        }),
+        fetch(`/api/proxy/generate-spotify/${credencialId}`, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({}),
+        }),
+      ])
 
-      console.log("[v0] Generate content response status:", response.status, response.statusText)
+      console.log("[v0] YouTube response status:", youtubeResponse.status)
+      console.log("[v0] Spotify response status:", spotifyResponse.status)
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error("[v0] API error response:", errorData)
-        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`)
+      if (!youtubeResponse.ok) {
+        const errorData = await youtubeResponse.json()
+        console.error("[v0] YouTube API error:", errorData)
+        throw new Error(errorData.error || `YouTube error ${youtubeResponse.status}`)
       }
 
-      const data = await response.json()
-      console.log("[v0] Generated content data:", data)
+      if (!spotifyResponse.ok) {
+        const errorData = await spotifyResponse.json()
+        console.error("[v0] Spotify API error:", errorData)
+        throw new Error(errorData.error || `Spotify error ${spotifyResponse.status}`)
+      }
 
-      const videos = (data.resultados || []).map((item: any) => {
+      const youtubeData = await youtubeResponse.json()
+      const spotifyData = await spotifyResponse.json()
+
+      console.log("[v0] YouTube data:", youtubeData)
+      console.log("[v0] Spotify data:", spotifyData)
+
+      // Transform YouTube videos
+      const videos = (youtubeData.resultados || []).map((item: any) => {
         const id = extractYouTubeId(item.url)
         const thumb = id ? getYouTubeThumbnail(id, "maxresdefault") : "/placeholder.svg"
         return {
           title: item.titulo,
           url: item.url,
-          channel: "", // optional for now
-          duration: "", // optional for now
+          channel: "",
+          duration: "",
           reason: "Generado por IA",
           thumbnail: thumb,
         }
       })
 
-      const generated = { videos, podcasts: [], events: [] }
+      // Transform Spotify tracks
+      const spotifyTracks = (spotifyData.resultados || []).map((item: any) => ({
+        titulo: item.titulo,
+        artista: item.artista,
+        url: item.url,
+      }))
+
+      const generated = { videos, podcasts: [], events: [], spotifyTracks }
       localStorage.setItem("generatedContent", JSON.stringify(generated))
+
+      console.log("[v0] Saved content to localStorage:", generated)
 
       toast({
         title: "Contenido generado exitosamente",
-        description: "Se ha creado contenido personalizado basado en los intereses",
+        description: `Se generaron ${videos.length} videos de YouTube y ${spotifyTracks.length} tracks de Spotify`,
       })
 
       router.push("/inicio")
@@ -192,6 +218,13 @@ export default function OnboardingPage() {
         ],
         podcasts: [],
         events: [],
+        spotifyTracks: [
+          {
+            titulo: "Yira Yira",
+            artista: "Edmundo Rivero",
+            url: "https://open.spotify.com/track/7BdDfn4GpUbtWniECxgLgY",
+          },
+        ],
       }
 
       localStorage.setItem("generatedContent", JSON.stringify(mockData))

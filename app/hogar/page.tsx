@@ -5,6 +5,7 @@ import { Play, Calendar, Bell } from "lucide-react"
 import { useState, useEffect } from "react"
 import { AccesibilidadRapida } from "@/components/hogar/accesibilidad-rapida"
 import { extractYouTubeId } from "@/lib/youtube"
+import { extractSpotifyTrackId } from "@/lib/spotify"
 
 const CONTENT_ITEMS = [
   {
@@ -13,6 +14,7 @@ const CONTENT_ITEMS = [
     duration: "18 minutos",
     action: "Empezar ahora",
     podcastId: "6pOHgLCS6WkkugeEFZwaIs", // Updated to use real Spotify episode ID from provided URL
+    plataforma: "Spotify",
   },
   {
     type: "Video",
@@ -20,6 +22,7 @@ const CONTENT_ITEMS = [
     duration: "25 minutos",
     action: "Ver ahora",
     videoId: "dQw4w9WgXcQ",
+    plataforma: "YouTube",
   },
   {
     type: "Podcast",
@@ -27,6 +30,7 @@ const CONTENT_ITEMS = [
     duration: "15 minutos",
     action: "Escuchar ahora",
     podcastId: "4rOoJ6Egrf8K2IrywzwOMk", // Example Spotify episode ID
+    plataforma: "Spotify",
   },
   {
     type: "Video",
@@ -34,6 +38,7 @@ const CONTENT_ITEMS = [
     duration: "30 minutos",
     action: "Ver ahora",
     videoId: "jNQXAC9IVRw",
+    plataforma: "YouTube",
   },
 ]
 
@@ -43,27 +48,41 @@ export default function HogarPage() {
   const [currentContentIndex, setCurrentContentIndex] = useState(0)
   const [backendContent, setBackendContent] = useState<any[]>([])
   const [useBackendContent, setUseBackendContent] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    console.log("[v0] Loading content from localStorage")
-    const storedContent = localStorage.getItem("hogarContent")
-    if (storedContent) {
+    const fetchContent = async () => {
+      console.log("[v0] Fetching content from backend GET endpoint")
+      setLoading(true)
       try {
-        const parsed = JSON.parse(storedContent)
-        console.log("[v0] Parsed content:", parsed)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setBackendContent(parsed)
+        const response = await fetch("/api/proxy/list-content/1")
+
+        if (!response.ok) {
+          console.error("[v0] Failed to fetch content:", response.status)
+          throw new Error("Failed to fetch content")
+        }
+
+        const data = await response.json()
+        console.log("[v0] Backend GET response:", data)
+
+        if (Array.isArray(data) && data.length > 0) {
+          setBackendContent(data)
           setUseBackendContent(true)
-          console.log("[v0] Using backend content with", parsed.length, "items")
+          console.log("[v0] Using backend content with", data.length, "items")
         } else {
           console.log("[v0] Backend content is empty, using fallback")
+          setUseBackendContent(false)
         }
       } catch (error) {
-        console.error("[v0] Error parsing stored content:", error)
+        console.error("[v0] Error fetching content:", error)
+        console.log("[v0] Using fallback content")
+        setUseBackendContent(false)
+      } finally {
+        setLoading(false)
       }
-    } else {
-      console.log("[v0] No stored content found, using fallback")
     }
+
+    fetchContent()
   }, [])
 
   const contentToUse = useBackendContent ? backendContent : CONTENT_ITEMS
@@ -86,13 +105,26 @@ export default function HogarPage() {
 
   const handlePlay = () => {
     if (useBackendContent && currentContent) {
-      const videoId = extractYouTubeId(currentContent.url)
-      if (videoId) {
-        console.log("[v0] Navigating to video player with ID:", videoId)
-        router.push(`/hogar-player?videoId=${videoId}`)
-      } else {
-        console.error("[v0] Could not extract video ID from URL:", currentContent.url)
-        window.open(currentContent.url, "_blank")
+      const platform = currentContent.plataforma || "YouTube"
+
+      if (platform === "YouTube") {
+        const videoId = extractYouTubeId(currentContent.url)
+        if (videoId) {
+          console.log("[v0] Navigating to YouTube video:", videoId)
+          router.push(`/hogar-player?videoId=${videoId}`)
+        } else {
+          console.error("[v0] Could not extract video ID from URL:", currentContent.url)
+          window.open(currentContent.url, "_blank")
+        }
+      } else if (platform === "Spotify") {
+        const trackId = extractSpotifyTrackId(currentContent.url)
+        if (trackId) {
+          console.log("[v0] Navigating to Spotify track:", trackId)
+          router.push(`/hogar-player?podcastId=${trackId}`)
+        } else {
+          console.error("[v0] Could not extract Spotify track ID from URL:", currentContent.url)
+          window.open(currentContent.url, "_blank")
+        }
       }
     } else if (currentContent.type === "Video" && "videoId" in currentContent) {
       router.push(`/hogar-player?videoId=${currentContent.videoId}`)
@@ -108,8 +140,21 @@ export default function HogarPage() {
     : `${currentContent.type}: ${currentContent.title}`
 
   const displaySubtitle = useBackendContent
-    ? "Video de YouTube"
+    ? currentContent?.plataforma === "Spotify"
+      ? "Podcast de Spotify"
+      : "Video de YouTube"
     : `${currentContent.duration} · ${currentContent.action}`
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#2C3E2F] mx-auto mb-4"></div>
+          <p className="text-2xl text-[#2C3E2F]">Cargando contenido...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 text-[#2C3E2F]">

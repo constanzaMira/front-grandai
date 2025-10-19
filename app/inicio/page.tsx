@@ -49,6 +49,7 @@ interface GeneratedContent {
     type: string
     locationImage: string
   }>
+  spotifyTracks: SpotifyTrack[]
 }
 
 interface SpotifyTrack {
@@ -123,23 +124,21 @@ export default function InicioPage() {
       console.log(
         "[v0] Stored content parsed - Videos:",
         parsedContent.videos?.length,
-        "Podcasts:",
-        parsedContent.podcasts?.length,
+        "Spotify tracks:",
+        parsedContent.spotifyTracks?.length,
       )
       setContent(parsedContent)
+
+      // Extract Spotify tracks from the same object
+      if (parsedContent.spotifyTracks) {
+        setSpotifyTracks(parsedContent.spotifyTracks)
+      }
+
       calculateActivitySummary(parsedContent)
       setIsLoading(false)
     } else {
-      console.log("[v0] No stored content found, calling generateContent")
-      generateContent(parsedProfile)
-    }
-
-    const storedSpotifyTracks = localStorage.getItem("spotifyTracks")
-    if (storedSpotifyTracks) {
-      console.log("[v0] Found stored spotifyTracks, parsing...")
-      const parsedSpotifyTracks = JSON.parse(storedSpotifyTracks)
-      console.log("[v0] Stored spotifyTracks parsed - Array length:", parsedSpotifyTracks.length)
-      setSpotifyTracks(parsedSpotifyTracks)
+      console.log("[v0] No stored content found, redirecting to onboarding")
+      router.push("/onboarding")
     }
   }, [hydrated, authLoading, router])
 
@@ -169,147 +168,73 @@ export default function InicioPage() {
     })
   }
 
-  const generateContent = async (profileData: ElderProfile) => {
-    console.log("[v0] === generateContent START ===")
-    setIsLoading(true)
-
-    try {
-      const credencialId = localStorage.getItem("credencial_id") || "1"
-      console.log(`[v0] Using credencial_id: ${credencialId}`)
-      console.log(`[v0] Calling API: /api/proxy/list-content/${credencialId}`)
-      console.log(`[v0] Calling API: /api/proxy/generate-spotify/${credencialId}`)
-
-      const [youtubeResponse, spotifyResponse] = await Promise.all([
-        fetch(`/api/proxy/list-content/${credencialId}`),
-        fetch(`/api/proxy/generate-spotify/${credencialId}`, { method: "POST" }),
-      ])
-
-      console.log(`[v0] API response status: ${youtubeResponse.status}`)
-      console.log(`[v0] API response status: ${spotifyResponse.status}`)
-
-      if (!youtubeResponse.ok) {
-        console.error(`[v0] API response not OK: ${youtubeResponse.status} ${youtubeResponse.statusText}`)
-        throw new Error("Failed to fetch content from backend")
-      }
-
-      const backendContent = await youtubeResponse.json()
-      console.log(`[v0] Backend content received - Array length: ${backendContent.length}`)
-      console.log(`[v0] First item:`, backendContent[0])
-
-      if (!spotifyResponse.ok) {
-        console.error(`[v0] API response not OK: ${spotifyResponse.status} ${spotifyResponse.statusText}`)
-        throw new Error("Failed to fetch Spotify content from backend")
-      }
-
-      const spotifyJson = await spotifyResponse.json()
-      console.log(`[v0] Spotify response:`, spotifyJson)
-      const spotifyData = spotifyJson.resultados || []
-      console.log(`[v0] Spotify tracks received - Array length: ${spotifyData.length}`)
-
-      const transformedContent: GeneratedContent = {
-        videos: backendContent
-          .filter((item: any) => item.plataforma === "YouTube")
-          .map((item: any) => {
-            const videoId = extractYouTubeId(item.url)
-            console.log(`[v0] Processing video: ${item.titulo}, videoId: ${videoId}`)
-            return {
-              title: item.titulo,
-              channel: "YouTube",
-              duration: "",
-              reason: `Contenido personalizado para ${profileData.name}`,
-              url: item.url,
-              thumbnail: videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : "",
-            }
-          }),
-        podcasts: [],
-        events: [],
-      }
-
-      console.log(`[v0] Transformed content - Videos: ${transformedContent.videos.length}`)
-      console.log(`[v0] Spotify tracks: ${spotifyData.length}`)
-
-      setContent(transformedContent)
-      setSpotifyTracks(spotifyData)
-      localStorage.setItem("generatedContent", JSON.stringify(transformedContent))
-      localStorage.setItem("spotifyTracks", JSON.stringify(spotifyData))
-      calculateActivitySummary(transformedContent)
-      setIsLoading(false)
-
-      console.log("[v0] === generateContent SUCCESS ===")
-    } catch (error) {
-      console.error("[v0] === generateContent ERROR ===")
-      console.error("[v0] Error details:", error)
-
-      const fallbackContent: GeneratedContent = {
-        videos: [
-          {
-            title: "Historia del tango argentino - Documental completo",
-            channel: "Historia Argentina",
-            duration: "45:20",
-            reason: `Basado en el interés de ${profileData.name} en la historia y la música`,
-            url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-            thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
-          },
-          {
-            title: "Recetas tradicionales uruguayas paso a paso",
-            channel: "Cocina del Río de la Plata",
-            duration: "28:15",
-            reason: "Contenido sobre cocina tradicional de la región",
-            url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-            thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
-          },
-          {
-            title: "Mejores jugadas de Peñarol - Clásicos históricos",
-            channel: "Fútbol Uruguayo",
-            duration: "35:40",
-            reason: `Contenido deportivo relacionado con los intereses de ${profileData.name}`,
-            url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-            thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
-          },
-        ],
-        podcasts: [],
-        events: [],
-      }
-
-      const fallbackSpotifyTracks: SpotifyTrack[] = [
-        {
-          titulo: "Historias del Río de la Plata",
-          artista: "Radio Nacional",
-          url: "https://open.spotify.com/track/1",
-        },
-        {
-          titulo: "Música de nuestra tierra",
-          artista: "Folklore y Tradición",
-          url: "https://open.spotify.com/track/2",
-        },
-        {
-          titulo: "Charlas de café - Historias de vida",
-          artista: "Conversaciones",
-          url: "https://open.spotify.com/track/3",
-        },
-      ]
-
-      setContent(fallbackContent)
-      setSpotifyTracks(fallbackSpotifyTracks)
-      localStorage.setItem("generatedContent", JSON.stringify(fallbackContent))
-      localStorage.setItem("spotifyTracks", JSON.stringify(fallbackSpotifyTracks))
-      calculateActivitySummary(fallbackContent)
-      setIsLoading(false)
-    }
-  }
-
   const handleRegenerate = async () => {
     if (!profile) return
     setIsRegenerating(true)
-    await generateContent(profile)
-    const storedContent = localStorage.getItem("generatedContent")
-    const storedSpotifyTracks = localStorage.getItem("spotifyTracks")
-    if (storedContent) {
-      setContent(JSON.parse(storedContent))
+
+    try {
+      const credencialId = 1
+
+      const [youtubeResponse, spotifyResponse] = await Promise.all([
+        fetch(`/api/proxy/generate-content/${credencialId}`, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({}),
+        }),
+        fetch(`/api/proxy/generate-spotify/${credencialId}`, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({}),
+        }),
+      ])
+
+      if (youtubeResponse.ok && spotifyResponse.ok) {
+        const youtubeData = await youtubeResponse.json()
+        const spotifyData = await spotifyResponse.json()
+
+        const videos = (youtubeData.resultados || []).map((item: any) => {
+          const id = extractYouTubeId(item.url)
+          return {
+            title: item.titulo,
+            url: item.url,
+            channel: "",
+            duration: "",
+            reason: "Generado por IA",
+            thumbnail: id ? `https://img.youtube.com/vi/${id}/maxresdefault.jpg` : "",
+          }
+        })
+
+        const spotifyTracks = (spotifyData.resultados || []).map((item: any) => ({
+          titulo: item.titulo,
+          artista: item.artista,
+          url: item.url,
+        }))
+
+        const generated = { videos, podcasts: [], events: [], spotifyTracks }
+        localStorage.setItem("generatedContent", JSON.stringify(generated))
+        setContent(generated)
+        setSpotifyTracks(spotifyTracks)
+
+        toast({
+          title: "Contenido regenerado",
+          description: `Se generaron ${videos.length} videos y ${spotifyTracks.length} tracks`,
+        })
+      }
+    } catch (error) {
+      console.error("[v0] Error regenerating content:", error)
+      toast({
+        title: "Error al regenerar",
+        description: "No se pudo regenerar el contenido",
+        variant: "destructive",
+      })
     }
-    if (storedSpotifyTracks) {
-      setSpotifyTracks(JSON.parse(storedSpotifyTracks))
-    }
+
     setIsRegenerating(false)
   }
 
