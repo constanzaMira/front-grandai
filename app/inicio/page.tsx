@@ -7,7 +7,7 @@ import { BottomNav } from "@/components/bottom-nav"
 import { DesktopNav } from "@/components/desktop-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Sparkles, Youtube, Loader2, RefreshCw, Plus } from "lucide-react"
+import { Sparkles, Youtube, Loader2, RefreshCw, Plus, Music } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { extractYouTubeId } from "@/lib/youtube"
@@ -51,6 +51,12 @@ interface GeneratedContent {
   }>
 }
 
+interface SpotifyTrack {
+  titulo: string
+  artista: string
+  url: string
+}
+
 export default function InicioPage() {
   const router = useRouter()
   const { toast } = useToast()
@@ -58,6 +64,7 @@ export default function InicioPage() {
   const [hydrated, setHydrated] = useState(false)
   const [profile, setProfile] = useState<ElderProfile | null>(null)
   const [content, setContent] = useState<GeneratedContent | null>(null)
+  const [spotifyTracks, setSpotifyTracks] = useState<SpotifyTrack[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isRegenerating, setIsRegenerating] = useState(false)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
@@ -126,6 +133,14 @@ export default function InicioPage() {
       console.log("[v0] No stored content found, calling generateContent")
       generateContent(parsedProfile)
     }
+
+    const storedSpotifyTracks = localStorage.getItem("spotifyTracks")
+    if (storedSpotifyTracks) {
+      console.log("[v0] Found stored spotifyTracks, parsing...")
+      const parsedSpotifyTracks = JSON.parse(storedSpotifyTracks)
+      console.log("[v0] Stored spotifyTracks parsed - Array length:", parsedSpotifyTracks.length)
+      setSpotifyTracks(parsedSpotifyTracks)
+    }
   }, [hydrated, authLoading, router])
 
   const calculateActivitySummary = (contentData: GeneratedContent) => {
@@ -162,18 +177,34 @@ export default function InicioPage() {
       const credencialId = localStorage.getItem("credencial_id") || "1"
       console.log(`[v0] Using credencial_id: ${credencialId}`)
       console.log(`[v0] Calling API: /api/proxy/list-content/${credencialId}`)
+      console.log(`[v0] Calling API: /api/proxy/generate-spotify/${credencialId}`)
 
-      const response = await fetch(`/api/proxy/list-content/${credencialId}`)
-      console.log(`[v0] API response status: ${response.status}`)
+      const [youtubeResponse, spotifyResponse] = await Promise.all([
+        fetch(`/api/proxy/list-content/${credencialId}`),
+        fetch(`/api/proxy/generate-spotify/${credencialId}`, { method: "POST" }),
+      ])
 
-      if (!response.ok) {
-        console.error(`[v0] API response not OK: ${response.status} ${response.statusText}`)
+      console.log(`[v0] API response status: ${youtubeResponse.status}`)
+      console.log(`[v0] API response status: ${spotifyResponse.status}`)
+
+      if (!youtubeResponse.ok) {
+        console.error(`[v0] API response not OK: ${youtubeResponse.status} ${youtubeResponse.statusText}`)
         throw new Error("Failed to fetch content from backend")
       }
 
-      const backendContent = await response.json()
+      const backendContent = await youtubeResponse.json()
       console.log(`[v0] Backend content received - Array length: ${backendContent.length}`)
       console.log(`[v0] First item:`, backendContent[0])
+
+      if (!spotifyResponse.ok) {
+        console.error(`[v0] API response not OK: ${spotifyResponse.status} ${spotifyResponse.statusText}`)
+        throw new Error("Failed to fetch Spotify content from backend")
+      }
+
+      const spotifyJson = await spotifyResponse.json()
+      console.log(`[v0] Spotify response:`, spotifyJson)
+      const spotifyData = spotifyJson.resultados || []
+      console.log(`[v0] Spotify tracks received - Array length: ${spotifyData.length}`)
 
       const transformedContent: GeneratedContent = {
         videos: backendContent
@@ -190,26 +221,17 @@ export default function InicioPage() {
               thumbnail: videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : "",
             }
           }),
-        podcasts: backendContent
-          .filter((item: any) => item.plataforma === "Spotify")
-          .map((item: any) => ({
-            title: item.titulo,
-            host: "Spotify",
-            duration: "",
-            reason: `Contenido personalizado para ${profileData.name}`,
-            platform: "Spotify",
-            albumArt: "/placeholder.svg",
-          })),
+        podcasts: [],
         events: [],
       }
 
-      console.log(
-        `[v0] Transformed content - Videos: ${transformedContent.videos.length}, Podcasts: ${transformedContent.podcasts.length}`,
-      )
-      console.log(`[v0] Saving to localStorage and updating state`)
+      console.log(`[v0] Transformed content - Videos: ${transformedContent.videos.length}`)
+      console.log(`[v0] Spotify tracks: ${spotifyData.length}`)
 
       setContent(transformedContent)
+      setSpotifyTracks(spotifyData)
       localStorage.setItem("generatedContent", JSON.stringify(transformedContent))
+      localStorage.setItem("spotifyTracks", JSON.stringify(spotifyData))
       calculateActivitySummary(transformedContent)
       setIsLoading(false)
 
@@ -245,65 +267,32 @@ export default function InicioPage() {
             thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
           },
         ],
-        podcasts: [
-          {
-            title: "Historias del Río de la Plata",
-            host: "Radio Nacional",
-            duration: "42 min",
-            reason: "Podcast sobre historia regional",
-            platform: "Spotify",
-            albumArt: "/placeholder.svg",
-          },
-          {
-            title: "Música de nuestra tierra",
-            host: "Folklore y Tradición",
-            duration: "38 min",
-            reason: "Contenido musical tradicional",
-            platform: "Spotify",
-            albumArt: "/placeholder.svg",
-          },
-          {
-            title: "Charlas de café - Historias de vida",
-            host: "Conversaciones",
-            duration: "50 min",
-            reason: "Podcast conversacional sobre experiencias de vida",
-            platform: "Spotify",
-            albumArt: "/placeholder.svg",
-          },
-        ],
-        events: [
-          {
-            title: "Misa dominical",
-            location: "Parroquia del barrio",
-            date: "Domingo 20 Oct",
-            time: "10:00",
-            reason: "Actividad religiosa semanal",
-            type: "Religioso",
-            locationImage: "/placeholder.svg",
-          },
-          {
-            title: "Bingo comunitario",
-            location: "Centro de jubilados",
-            date: "Miércoles 23 Oct",
-            time: "15:00",
-            reason: "Actividad social recreativa",
-            type: "Social",
-            locationImage: "/placeholder.svg",
-          },
-          {
-            title: "Taller de tejido",
-            location: "Club del barrio",
-            date: "Jueves 24 Oct",
-            time: "16:00",
-            reason: "Actividad manual y social",
-            type: "Taller",
-            locationImage: "/placeholder.svg",
-          },
-        ],
+        podcasts: [],
+        events: [],
       }
 
+      const fallbackSpotifyTracks: SpotifyTrack[] = [
+        {
+          titulo: "Historias del Río de la Plata",
+          artista: "Radio Nacional",
+          url: "https://open.spotify.com/track/1",
+        },
+        {
+          titulo: "Música de nuestra tierra",
+          artista: "Folklore y Tradición",
+          url: "https://open.spotify.com/track/2",
+        },
+        {
+          titulo: "Charlas de café - Historias de vida",
+          artista: "Conversaciones",
+          url: "https://open.spotify.com/track/3",
+        },
+      ]
+
       setContent(fallbackContent)
+      setSpotifyTracks(fallbackSpotifyTracks)
       localStorage.setItem("generatedContent", JSON.stringify(fallbackContent))
+      localStorage.setItem("spotifyTracks", JSON.stringify(fallbackSpotifyTracks))
       calculateActivitySummary(fallbackContent)
       setIsLoading(false)
     }
@@ -314,8 +303,12 @@ export default function InicioPage() {
     setIsRegenerating(true)
     await generateContent(profile)
     const storedContent = localStorage.getItem("generatedContent")
+    const storedSpotifyTracks = localStorage.getItem("spotifyTracks")
     if (storedContent) {
       setContent(JSON.parse(storedContent))
+    }
+    if (storedSpotifyTracks) {
+      setSpotifyTracks(JSON.parse(storedSpotifyTracks))
     }
     setIsRegenerating(false)
   }
@@ -449,6 +442,41 @@ export default function InicioPage() {
                       </button>
                     )
                   })}
+                </div>
+              </section>
+            )}
+
+            {spotifyTracks && spotifyTracks.length > 0 && (
+              <section className="mb-8">
+                <div className="mb-4 flex items-center gap-2">
+                  <Music className="h-6 w-6 text-green-600" />
+                  <h2 className="text-xl font-semibold">Podcasts de Spotify</h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {spotifyTracks.map((track, index) => (
+                    <button
+                      key={`spotify-${index}`}
+                      onClick={() => {
+                        router.push(
+                          `/spotify-player?trackUrl=${encodeURIComponent(track.url)}&title=${encodeURIComponent(track.titulo)}&artist=${encodeURIComponent(track.artista)}`,
+                        )
+                      }}
+                      className="relative group bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 rounded-lg p-6 text-left hover:shadow-lg transition-all hover:scale-[1.02] border-2 border-green-200 dark:border-green-800"
+                    >
+                      <div className="absolute top-3 right-3 bg-green-600 rounded-full p-2 group-hover:scale-110 transition-transform">
+                        <Music className="h-5 w-5 text-white" />
+                      </div>
+
+                      <h3 className="font-semibold text-base line-clamp-3 pr-12 mb-2">{track.titulo}</h3>
+
+                      <p className="text-sm text-muted-foreground mb-2">{track.artista}</p>
+
+                      <div className="mt-4 text-sm font-medium text-green-600 dark:text-green-400">
+                        Click para escuchar →
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </section>
             )}
