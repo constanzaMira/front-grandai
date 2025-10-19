@@ -11,7 +11,7 @@ export default function HogarAjustesPage() {
   const [volume, setVolume] = useState(50)
 
   return (
-    <div className="min-h-screen bg-[#F5F1E8] text-[#2C3E2F] flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 text-[#2C3E2F] flex flex-col">
       <header className="bg-white border-b-2 border-[#2C3E2F]/10 p-6">
         <h1 className="text-3xl font-bold text-center">Ajustes</h1>
       </header>
@@ -106,7 +106,7 @@ export default function HogarAjustesPage() {
             <Globe className="w-10 h-10" />
             <h2 className="text-2xl font-bold">Idioma</h2>
           </div>
-          <button className="w-full h-20 bg-[#2C3E2F] text-white rounded-2xl text-xl font-semibold flex items-center justify-center gap-2">
+          <button className="w-full h-20 bg-[#2C3E2F] text-white rounded-3xl text-xl font-semibold flex items-center justify-center gap-2">
             <Check className="w-6 h-6" />
             Español
           </button>

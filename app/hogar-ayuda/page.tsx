@@ -7,7 +7,7 @@ export default function HogarAyudaPage() {
   const router = useRouter()
 
   return (
-    <div className="min-h-screen bg-[#F5F1E8] text-[#2C3E2F] flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 text-[#2C3E2F] flex flex-col">
       <header className="bg-white border-b-2 border-[#2C3E2F]/10 p-6">
         <h1 className="text-3xl font-bold text-center">Ayuda</h1>
       </header>

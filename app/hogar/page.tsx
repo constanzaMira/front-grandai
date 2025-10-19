@@ -69,7 +69,7 @@ export default function HogarPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F1E8] text-[#2C3E2F]">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 text-[#2C3E2F]">
       <main className="p-6 space-y-6 pb-32">
         {/* Ahora card */}
         <div className="bg-white rounded-2xl p-8 shadow-lg border-2 border-[#2C3E2F]/10">

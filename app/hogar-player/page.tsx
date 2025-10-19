@@ -14,7 +14,7 @@ function HogarPlayerContent() {
 
   if (podcastId) {
     return (
-      <div className="min-h-screen bg-[#F5F1E8] text-[#2C3E2F] flex flex-col">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 text-[#2C3E2F] flex flex-col">
         <header className="bg-white border-b-2 border-[#2C3E2F]/10 p-6">
           <h1 className="text-3xl font-bold text-center">Reproduciendo podcast</h1>
         </header>
@@ -52,7 +52,7 @@ function HogarPlayerContent() {
 
   if (videoId) {
     return (
-      <div className="min-h-screen bg-[#F5F1E8] text-[#2C3E2F] flex flex-col">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 text-[#2C3E2F] flex flex-col">
         <header className="bg-white border-b-2 border-[#2C3E2F]/10 p-6">
           <h1 className="text-3xl font-bold text-center">Reproduciendo video</h1>
         </header>
@@ -91,7 +91,7 @@ function HogarPlayerContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F1E8] text-[#2C3E2F] flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 text-[#2C3E2F] flex flex-col">
       <header className="bg-white border-b-2 border-[#2C3E2F]/10 p-6">
         <h1 className="text-3xl font-bold text-center">Reproduciendo</h1>
       </header>
@@ -177,7 +177,7 @@ export default function HogarPlayerPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#F5F1E8] flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center">
           <p className="text-2xl">Cargando...</p>
         </div>
       }

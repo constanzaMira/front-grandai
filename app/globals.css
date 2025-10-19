@@ -5,7 +5,8 @@
 
 :root {
   /* Paleta cálida y profesional inspirada en el diseño */
-  --background: oklch(0.98 0.005 85);
+  /* Updated background to match /role page (green-50 to emerald-50) */
+  --background: oklch(0.985 0.025 155);
   --foreground: oklch(0.25 0.01 85);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.25 0.01 85);
@@ -52,7 +53,8 @@
 }
 
 .dark {
-  --background: oklch(0.18 0.01 85);
+  /* Updated dark mode background to maintain the subtle green tint */
+  --background: oklch(0.2 0.02 155);
   --foreground: oklch(0.95 0.005 85);
   --card: oklch(0.22 0.01 85);
   --card-foreground: oklch(0.95 0.005 85);
