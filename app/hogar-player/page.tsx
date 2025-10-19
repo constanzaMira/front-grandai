@@ -8,47 +8,47 @@ function HogarPlayerContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const videoId = searchParams.get("videoId")
-  const podcastId = searchParams.get("podcastId")
+  const spotifyUrl = searchParams.get("spotifyUrl")
   const [isPlaying, setIsPlaying] = useState(true)
   const [progress, setProgress] = useState(35)
 
-  if (podcastId) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 text-[#2C3E2F] flex flex-col">
-        <header className="bg-white border-b-2 border-[#2C3E2F]/10 p-6">
-          <h1 className="text-3xl font-bold text-center">Reproduciendo podcast</h1>
-        </header>
+ if (spotifyUrl) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 text-[#2C3E2F] flex flex-col">
+      <header className="bg-white border-b-2 border-[#2C3E2F]/10 p-6">
+        <h1 className="text-3xl font-bold text-center">Reproduciendo podcast</h1>
+      </header>
 
-        <main className="flex-1 flex flex-col items-center justify-center p-6">
-          <div className="w-full max-w-2xl bg-white rounded-2xl overflow-hidden shadow-2xl">
-            <iframe
-              style={{ borderRadius: "12px" }}
-              src={`https://open.spotify.com/embed/episode/${podcastId}?utm_source=generator`}
-              width="100%"
-              height="352"
-              frameBorder="0"
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              loading="lazy"
-            />
-          </div>
-
-          <p className="text-2xl text-center text-[#2C3E2F]/70 leading-relaxed mt-8 max-w-2xl">
-            El podcast se está reproduciendo. Usá los controles de Spotify para pausar o ajustar el volumen.
-          </p>
-        </main>
-
-        <div className="p-6">
-          <button
-            onClick={() => router.push("/hogar")}
-            className="w-full h-20 bg-[#2C3E2F] text-white rounded-2xl text-2xl font-semibold flex items-center justify-center gap-3 active:scale-95 transition-transform shadow-lg"
-          >
-            <ArrowLeft className="w-8 h-8" />
-            Volver al inicio
-          </button>
+      <main className="flex-1 flex flex-col items-center justify-center p-6">
+        <div className="w-full max-w-2xl bg-white rounded-2xl overflow-hidden shadow-2xl">
+          <iframe
+            style={{ borderRadius: "12px" }}
+            src={decodeURIComponent(spotifyUrl)}  // 👈 decodificamos la URL que viene del router
+            width="100%"
+            height="352"
+            frameBorder="0"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"
+          />
         </div>
+
+        <p className="text-2xl text-center text-[#2C3E2F]/70 leading-relaxed mt-8 max-w-2xl">
+          El podcast se está reproduciendo. Usá los controles de Spotify para pausar o ajustar el volumen.
+        </p>
+      </main>
+
+      <div className="p-6">
+        <button
+          onClick={() => router.push("/hogar")}
+          className="w-full h-20 bg-[#2C3E2F] text-white rounded-2xl text-2xl font-semibold flex items-center justify-center gap-3 active:scale-95 transition-transform shadow-lg"
+        >
+          <ArrowLeft className="w-8 h-8" />
+          Volver al inicio
+        </button>
       </div>
-    )
-  }
+    </div>
+  )
+}
 
   if (videoId) {
     return (
