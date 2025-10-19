@@ -39,6 +39,7 @@ Acceder a la versión desplegada en:
 Iniciar sesión con el siguiente usuario de demostración:
 
 mail: usuario@ejemplo.com
+
 contrasenia: 123456
 
 Una vez dentro, se puede:
